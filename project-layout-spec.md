@@ -271,9 +271,8 @@ class Settings(BaseSettings):
     engine_dtype: Literal["float16", "bfloat16", "float32"] = Field(default="float16")
 
     # 按引擎能力选择性暴露(对应 docker-spec.md §8.2 条件变量)
-    # 多版本模型时使用(例:CosyVoice 的 v2 与 v3)
-    # engine_version: Optional[str] = Field(default=None)
-    # 多变体时使用(例:MOSS-TTS 的 tts / ttsd / voicegen / sfx)
+    # 需要分派 API 世代或功能模式时使用(两种语义互斥,只用同一个字段)
+    # 例:CosyVoice 的 v2 / v3(接口世代);MOSS-TTS 的 tts / ttsd / voicegen / sfx(功能模式)
     # engine_variant: Optional[str] = Field(default=None)
     # 支持量化时使用(仅 CUDA 镜像生效)
     # engine_quantization: Literal["none", "int8", "int4"] = Field(default="none")
@@ -682,7 +681,29 @@ One-paragraph description
 2. 完整的 `docker run` 示例,含卷挂载和 GPU 声明。
 3. 配置环境变量表(变量名、默认值、说明)。
 4. API 端点表(方法、路径、简述)。
-5. 指向规范文档的链接(`https://github.com/seancheung/open-tts-spec`)。
+5. **每个暴露的 POST 端点的请求参数表**(一个端点一张表)。覆盖范围仅限
+   `POST /v1/audio/speech`、`POST /v1/audio/clone`、`POST /v1/audio/design`、
+   `POST /v1/audio/realtime`,以及项目自带的其他 POST 扩展端点。GET 端点
+   (`/healthz`、`/v1/audio/voices`、`/v1/audio/voices/preview`、
+   `/v1/audio/languages`)不需要列参数表——这些在 http-api-spec 里已定义
+   且请求语义简单,复制到实现文档没有收益。
+
+   参数表**必须**覆盖字段名、类型、默认值、状态、说明五列,"状态"使用以下
+   受限词汇:
+   - **required** — 必填,缺失返回 422。
+   - **supported** — 可选字段,引擎真正消费该字段。
+   - **ignored** — 服务端接受但永远忽略(如 OpenAI 兼容的 `model`)。仍要
+     列出来,避免调用方以为服务端会据此切换行为。
+   - **conditional** — 在某些条件下支持、在另一些条件下忽略或降级;必须
+     在"说明"列写清条件(例如"仅 `voice="file://..."` 时有效,内置声音下被
+     忽略+warn";"流式路径下被引擎忽略")。
+   - **extension** — 非规范字段、仅此实现特有。要求一并给出含义与取值范围。
+6. 指向规范文档的链接(`https://github.com/OpenTTSGroup/open-tts-spec`)。
+
+"状态"一列的目的是让调用方**在不读源码**的前提下就能判断"我传这个字段到底
+会不会生效"。仅写"支持所有 OpenAI 字段"这种模糊措辞**不合规**——必须逐字段
+标注,尤其要把 `model` / `speed` / `instructions` 这类在不同引擎下行为差异
+大的字段写清楚。
 
 ---
 
@@ -744,4 +765,4 @@ One-paragraph description
 - [ ] 上游引擎作为 submodule 集成,目录和 submodule name 固定为 `engine`
 - [ ] `.gitignore` 与 `.dockerignore` 按规范
 - [ ] `docker/requirements.api.txt` 使用基线版本
-- [ ] README (中英文) 含配置表和 API 表
+- [ ] README (中英文) 含配置表、API 端点表、以及**每个 POST 端点的请求参数表**(字段标注 `required` / `supported` / `ignored` / `conditional` / `extension`)

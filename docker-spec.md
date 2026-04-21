@@ -390,8 +390,7 @@ PIP_NO_CACHE_DIR=1
 
 | 变量 | 暴露条件 | 取值 | 说明 |
 |---|---|---|---|
-| `{ENGINE}_VERSION` | 单镜像承载多个模型版本(调用接口不同) | 引擎定义的版本号,如 `"2"`、`"3"`、`"v3.0.3"` | 用于在运行时分派到不同的加载路径。例:CosyVoice 的 v2 与 v3 API 略有不同,同一镜像需要通过此变量切换 |
-| `{ENGINE}_VARIANT` | 引擎有多个功能变体,同一镜像承载全部 | 引擎定义的变体 id,如 `tts` / `ttsd` / `voicegen` / `sfx` | **只负责分派功能逻辑(启用哪些端点、用哪条推理路径),不决定模型权重**——权重由 `{ENGINE}_MODEL` 指定,两者正交。例:MOSS-TTS 的 `tts` / `ttsd` / `voicegen` / `sfx` 对应不同的功能模式,每个变体再配合 `MOSS_MODEL` 指向该变体支持的权重 |
+| `{ENGINE}_VARIANT` | 单镜像承载多个 API 风格 / 功能模式 / 模型世代 | 引擎定义的变体 id,如 `v2` / `v3`(接口世代)、`tts` / `ttsd` / `voicegen` / `sfx`(功能模式) | 运行时分派的唯一开关。取值可以是接口版本(CosyVoice 的 `v2` / `v3` 对应不同的推理 API),也可以是功能模式(MOSS-TTS 的 `tts` / `ttsd` / `voicegen` / `sfx` 对应不同端点/推理路径)。**决定启用哪些端点、用哪条加载路径,但不决定模型权重**——权重由 `{ENGINE}_MODEL` 指定,两者正交。一个项目内两种语义**不共存**,由作者选择"版本分派"或"功能分派"之一。 |
 | `{ENGINE}_QUANTIZATION` | 引擎支持权重量化 | `none` / `int8` / `int4` 等 | **仅 CUDA 镜像支持**。CPU 镜像必须忽略此变量并按 `float32` 加载(容器内无 bitsandbytes 等加速库的 CPU 后端)。缺省等同 `none`,按 `{ENGINE}_DTYPE` 加载 |
 
 **命名约定**(其他引擎特有变量):
@@ -568,7 +567,7 @@ docker build -f docker/Dockerfile \
 - [ ] `docker/entrypoint.sh` 按 §5 模板,`chmod +x`
 - [ ] `docker/requirements.api.txt` 包含 7 行基线(见 `project-layout-spec.md` §5.2)
 - [ ] 镜像预设的环境变量符合 §8.1(CUDA 镜像不预设 `_DEVICE` / `_DTYPE`,CPU 镜像预设 `cpu` / `float32`)
-- [ ] 按引擎能力暴露条件变量:多版本 → `{ENGINE}_VERSION`,多变体 → `{ENGINE}_VARIANT`,支持量化(仅 CUDA) → `{ENGINE}_QUANTIZATION`;命名固定,不使用别名
+- [ ] 按引擎能力暴露条件变量:需要分派 API 世代 / 功能模式 → `{ENGINE}_VARIANT`(单变量承载两类语义,互斥不共存),支持量化(仅 CUDA) → `{ENGINE}_QUANTIZATION`;命名固定,不使用别名
 - [ ] 其他引擎特有变量全部以 `{ENGINE}_` 为前缀,全大写下划线命名
 - [ ] `VOLUME ["/voices", "/root/.cache"]` 声明
 - [ ] `EXPOSE 8000`
