@@ -69,7 +69,7 @@
    README.zh.md
    ```
 
-2. 将上游 TTS 引擎作为 `git submodule add` 到仓库根。
+2. 将上游 TTS 引擎作为 `git submodule add <upstream-url> engine` 到仓库根(目录名固定为 `engine`,见 `project-layout-spec.md` §4)。
 
 3. 按 [`http-api-spec.md`](./http-api-spec.md) §4 实现 4 个核心端点,根据引擎能力在 `/healthz.capabilities` 中声明扩展能力并注册对应路由。
 

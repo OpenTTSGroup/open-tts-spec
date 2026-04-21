@@ -91,11 +91,15 @@ RUN pip install --upgrade pip
 RUN pip install --index-url https://download.pytorch.org/whl/${TORCH_CUDA_TAG} \
         torch==X.Y.Z torchaudio==X.Y.Z
 
-# 上游引擎(submodule)
+# 上游引擎(submodule 目录固定为 engine)
 WORKDIR /build
-COPY {UpstreamModule} /build/{UpstreamModule}
-RUN pip install /build/{UpstreamModule} && \
+COPY engine /build/engine
+RUN pip install /build/engine && \
     pip install hf_transfer
+# 若上游无 pyproject.toml/setup.py,改为只 COPY 并通过 PYTHONPATH 暴露;此时
+# 不执行上面的 pip install /build/engine,改在 runtime ENV 中加
+#   PYTHONPATH=/opt/api/engine[:/opt/api/engine/third_party/...]
+# 即可。
 
 # API 层依赖
 COPY docker/requirements.api.txt /tmp/requirements.api.txt
@@ -150,7 +154,7 @@ CMD ["uvicorn", "app.server:app", "--host", "0.0.0.0", "--port", "8000"]
 
 **占位符说明**:
 - `{ENGINE}` → 引擎名大写(如 `OMNIVOICE`, `QWEN3`, `FISHSPEECH`)
-- `{UpstreamModule}` → submodule 目录名(保留原大小写,如 `OmniVoice`, `Qwen3-TTS`)
+- submodule 目录和 submodule name 在本规范中**固定为 `engine`**(见 `project-layout-spec.md` §4),Dockerfile 中直接写死 `engine`,不使用占位符。
 
 **ARG 默认值原则**:
 
@@ -212,8 +216,8 @@ RUN pip install --extra-index-url https://download.pytorch.org/whl/cpu \
         torch==X.Y.Z+cpu torchaudio==X.Y.Z+cpu
 
 WORKDIR /build
-COPY {UpstreamModule} /build/{UpstreamModule}
-RUN pip install /build/{UpstreamModule} && \
+COPY engine /build/engine
+RUN pip install /build/engine && \
     pip install hf_transfer
 
 COPY docker/requirements.api.txt /tmp/requirements.api.txt
@@ -479,7 +483,7 @@ COPY pyproject.toml uv.lock /opt/api/
 RUN uv sync --frozen --no-install-project --extra cu128
 
 # 源码层
-COPY {UpstreamModule} /opt/api/{UpstreamModule}
+COPY engine /opt/api/engine
 COPY app /opt/api/app
 RUN uv sync --frozen --extra cu128
 ```
@@ -543,7 +547,7 @@ docker build -f docker/Dockerfile \
   -t {engine}:py312 .
 ```
 
-**重要**:`context` 必须是仓库根(`.`),因为 Dockerfile 需要 `COPY {UpstreamModule}` 和 `COPY app`。
+**重要**:`context` 必须是仓库根(`.`),因为 Dockerfile 需要 `COPY engine` 和 `COPY app`。
 
 **ARG 覆盖边界**:ARG 只控制基础镜像与 PyTorch wheel 索引;上游引擎的 `pyproject.toml` / `requirements` 中的 torch 版本号是**写死**的(见 §3 模板中的 `torch==X.Y.Z`),覆盖 `TORCH_CUDA_TAG` 但不改 `torch` 版本可能导致 wheel 不存在。版本矩阵越界时构建会直接失败——这是符合预期的。
 

@@ -24,7 +24,7 @@
 {engine}-open-tts/
 ├── app/                          # FastAPI 应用层(本规范重点)
 ├── docker/                       # Docker 相关
-├── {UpstreamModule}/             # 上游引擎,作为 git submodule
+├── engine/                       # 上游引擎,作为 git submodule(目录名固定为 engine)
 ├── .github/
 │   └── workflows/
 │       └── build-image.yml
@@ -512,19 +512,19 @@ def list_languages(self) -> list[tuple[str, str]]:
 
 ## 4. 上游引擎集成
 
-上游引擎作为 **git submodule** 集成:
+上游引擎作为 **git submodule** 集成,目录和 submodule name **固定为 `engine`**:
 
 ```ini
 # .gitmodules
-[submodule "OmniVoice"]
-    path = OmniVoice
-    url = https://github.com/k2-fsa/OmniVoice.git
+[submodule "engine"]
+    path = engine
+    url = https://github.com/<upstream-owner>/<upstream-repo>.git
 ```
 
 **约束**:
-1. submodule 路径 = 上游仓库名(保留原大小写,如 `OmniVoice`, `Qwen3-TTS`, `fish-speech`)。
+1. submodule 路径固定为 `engine`,submodule name 同样为 `engine`。不再使用上游仓库的原大小写名称——跨项目统一的目录名让 Dockerfile、CI 步骤、`PYTHONPATH` 等可直接复用模板。
 2. pin 到具体 commit,不跟 branch。版本升级通过 `git submodule update --remote` + 显式 commit。
-3. 在 Dockerfile 中通过 `COPY {Module} /opt/api/{Module}` + `pip install /opt/api/{Module}` 安装。如果上游没有 `pyproject.toml`/`setup.py`,则通过 `PYTHONPATH=/opt/api/{Module}` 暴露。
+3. 在 Dockerfile 中通过 `COPY engine /opt/api/engine` + `pip install /opt/api/engine` 安装。如果上游没有 `pyproject.toml`/`setup.py`,则通过 `PYTHONPATH=/opt/api/engine` 暴露(若还有嵌套 third_party 依赖,一并加入,例如 `PYTHONPATH=/opt/api/engine:/opt/api/engine/third_party/Matcha-TTS`)。
 4. 上游仓库**不**打 patch。如果需要修改上游行为,在 `app/` 下写 monkey patch 模块(如 fishspeech 的 `_max_seq_len_patch.py`),并在 `engine.py` 的 `__init__` 头部 import。
 
 ---
@@ -584,7 +584,7 @@ RUN pip install --index-url https://download.pytorch.org/whl/cu128 \
 
 1. 系统包(`apt-get install`)
 2. `pip install torch` — 单独一层,体积大,变动少
-3. `COPY {Module} /opt/api/{Module}` + `pip install /opt/api/{Module}` — 上游引擎层
+3. `COPY engine /opt/api/engine` + `pip install /opt/api/engine`(或通过 `PYTHONPATH=/opt/api/engine` 暴露) — 上游引擎层
 4. `COPY docker/requirements.api.txt` + `pip install -r` — API 层依赖
 5. `COPY app /opt/api/app` — 应用代码(变动最频繁,放最后)
 
@@ -720,7 +720,7 @@ One-paragraph description
 - [ ] `/healthz` 返回 `status`/`model`/`sample_rate`/`capabilities` 全部必需字段,`capabilities` 5 个 bool 齐全
 - [ ] `capabilities` 声明与实际暴露的路由一致(`true` 则路由注册,`false` 则不注册)
 - [ ] 至少 `capabilities.clone` 或 `capabilities.builtin_voices` 之一为 `true`
-- [ ] `/v1/audio/voices` 响应为 `{ "voices": [...] }`,**不带** `object`/`data` 包装
+- [ ] `/v1/audio/voices` 响应为 `{ "voices": [...] }`
 - [ ] `VoiceInfo`:`file://` 前缀对克隆声音,内置声音无前缀;内置声音的 `preview_url`/`prompt_text` 为 `null`
 - [ ] `VoiceInfo.metadata` 字段已实现:文件克隆声音解析可选的 `${VOICES_DIR}/<id>.yml`(YAML 对象),内置声音由引擎填充或返回 `null`
 - [ ] `voices.py` 使用 `yaml.safe_load` 解析;解析失败不影响声音本身加载
@@ -741,7 +741,7 @@ One-paragraph description
 
 **工程规范**:
 
-- [ ] 上游引擎作为 submodule 集成
+- [ ] 上游引擎作为 submodule 集成,目录和 submodule name 固定为 `engine`
 - [ ] `.gitignore` 与 `.dockerignore` 按规范
 - [ ] `docker/requirements.api.txt` 使用基线版本
 - [ ] README (中英文) 含配置表和 API 表
