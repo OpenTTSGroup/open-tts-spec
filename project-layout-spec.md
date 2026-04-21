@@ -655,12 +655,46 @@ README.zh.md
 
 ### 7.1 结构
 
-两份 README:`README.md` (英文,默认) + `README.zh.md` (中文)。内容等价。
+两份 README:`README.md` (英文,默认,GitHub 首屏展示) + `README.zh.md` (中文)。
+内容等价。
+
+**两份 README 的 H1 标题下方**必须提供统一的语言切换行,让读者能在任一语言
+版本快速跳到另一份。约定:
+
+- 使用各语言自身的自称(`English` / `中文`),确保读者在任何一页都能识别自己
+  的首选语言。
+- **当前语言以 `**粗体**` 表示且不带链接**,其他语言写成相对路径链接
+  (`./README.xx.md`)。这样每页都清楚地标出"你在看的是哪一份"。
+- 分隔符固定使用中点 ` · `(U+00B7,前后各一个空格),不使用 `|`、`/`、`,` 等
+  其他写法。
+- 位置固定在 H1 下方的第一行(可选空行隔开),不混入 badges、短描述等内容。
+
+英文页(`README.md`):
+
+```markdown
+# {engine}-open-tts
+
+**English** · [中文](./README.zh.md)
+```
+
+中文页(`README.zh.md`):
+
+```markdown
+# {engine}-open-tts
+
+[English](./README.md) · **中文**
+```
+
+未来扩展其他语言时,按相同约定追加条目并维持顺序一致,例如英文页写
+`**English** · [中文](./README.zh.md) · [日本語](./README.ja.md)`,
+日文页写 `[English](./README.md) · [中文](./README.zh.md) · **日本語**`。
 
 推荐章节:
 
 ```
-# {Engine} Open TTS
+# {engine}-open-tts
+
+**English** · [中文](./README.zh.md)
 
 One-paragraph description
 
@@ -766,3 +800,4 @@ One-paragraph description
 - [ ] `.gitignore` 与 `.dockerignore` 按规范
 - [ ] `docker/requirements.api.txt` 使用基线版本
 - [ ] README (中英文) 含配置表、API 端点表、以及**每个 POST 端点的请求参数表**(字段标注 `required` / `supported` / `ignored` / `conditional` / `extension`)
+- [ ] 两份 README 的 H1 下方**第一行**均为统一的语言切换行:当前语言以 `**粗体**` 表示且不带链接,其他语言写相对路径链接,分隔符为 ` · `;例如英文页 `**English** · [中文](./README.zh.md)`,中文页 `[English](./README.md) · **中文**`
