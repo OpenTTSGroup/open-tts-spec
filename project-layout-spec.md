@@ -32,8 +32,7 @@
 ├── .gitignore
 ├── .dockerignore
 ├── README.md                     # 英文文档(默认)
-├── README.zh.md                  # 中文文档
-└── LICENSE
+└── README.zh.md                  # 中文文档
 ```
 
 **可选**:
@@ -675,7 +674,6 @@ One-paragraph description
   ...
 ## Voice Directory
 ## Development
-## License
 ```
 
 ### 7.2 必须包含的内容

@@ -59,6 +59,7 @@
    docker/Dockerfile
    docker/entrypoint.sh
    docker/requirements.api.txt
+   docker/requirements.engine.txt
    docker/docker-compose.example.yml
    .github/workflows/build-image.yml
    .gitmodules
