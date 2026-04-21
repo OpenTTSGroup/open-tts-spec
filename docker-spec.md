@@ -385,6 +385,7 @@ PIP_NO_CACHE_DIR=1
 | `PORT` | `8000` | 绑定端口 |
 | `LOG_LEVEL` | `info` | uvicorn 日志级别 |
 | `MAX_INPUT_CHARS` | `8000` | 文本长度上限 |
+| `CORS_ENABLED` | `false` | 全局 CORS 开关;`true` 时对所有端点放开跨域(见 `http-api-spec.md` §3.7) |
 
 **按需变量**(引擎具备相应能力时必须暴露,命名固定,不要用别名):
 

@@ -134,6 +134,35 @@ TTS 推理是 GPU/CPU 密集型操作,同一进程内并行多个推理会相互
 
 客户端不应依赖此字段做调度决策(数值是瞬时快照);用于人工观察或监控指标导出。
 
+### 3.7 跨域资源共享(CORS)
+
+默认**不**启用 CORS。生产部署通常藏在反向代理或与调用方同域,不需要浏览器
+跨域支持。实现**必须**提供一个统一的开关,让用户在有浏览器直连场景时一次性
+打开所有端点的跨域。
+
+**配置**(环境变量):
+
+| 变量 | 默认 | 说明 |
+|---|---|---|
+| `CORS_ENABLED` | `false` | 布尔开关。`true` 时挂载 CORS 中间件,允许任意 origin、任意 method、任意 header 访问**所有**端点。`false` 时不挂载中间件,跨域请求由浏览器阻止 |
+
+**行为**(当 `CORS_ENABLED=true`):
+
+- `Access-Control-Allow-Origin: *` —— 允许任何来源。
+- `Access-Control-Allow-Methods: *` —— 允许所有方法(含 `OPTIONS` preflight)。
+- `Access-Control-Allow-Headers: *` —— 允许所有自定义请求头。
+- **不**声明 `Access-Control-Allow-Credentials: true`——`origin=*` 与
+  `credentials=true` 在浏览器端互斥;本规范选择简化到"全开放、不携凭证"。
+  需要带 cookie / `Authorization` 走跨域的部署者自行修改实现(限定具体
+  origin 列表并开启 credentials)——这属于超出本规范的高级用法。
+- 应用于**全部**端点,包括核心端点(§4)和所有可选扩展端点(§5)。
+
+**实现细节**:
+
+- FastAPI 实现直接用 `fastapi.middleware.cors.CORSMiddleware(allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])`,在 `app` 创建之后立刻挂载。
+- 中间件注册**不**受 `capabilities` 影响——开关独立于引擎能力。
+- `CORS_ENABLED=false` 时**不要**注册一个"空壳" CORS 中间件,直接跳过挂载;这样响应头里不会出现任何 `Access-Control-*`,部署在反向代理后时也更干净。
+
 ---
 
 ## 4. 核心端点(所有实现必须提供)

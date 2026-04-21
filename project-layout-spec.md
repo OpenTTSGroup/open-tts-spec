@@ -239,7 +239,7 @@ class ConcurrencyLimiter:
 
 **约束**:
 1. 环境变量前缀 = 引擎名大写下划线(如 `OMNIVOICE_*`, `QWEN3_*`, `FISHSPEECH_*`)。**不**使用 `env_prefix`,而是将字段命名为 `omnivoice_model` 等小写形式,依赖 Pydantic 的 `case_sensitive=False` 自动映射。
-2. 必须提供通用字段:`host`, `port`, `log_level`, `max_input_chars`, `default_response_format`, `voices_dir`, `max_concurrency`(以及可选的 `max_queue_size` / `queue_timeout`)。所有这些字段**不带**引擎前缀,是服务级共享约定。
+2. 必须提供通用字段:`host`, `port`, `log_level`, `max_input_chars`, `default_response_format`, `voices_dir`, `max_concurrency`, `cors_enabled`(以及可选的 `max_queue_size` / `queue_timeout`)。所有这些字段**不带**引擎前缀,是服务级共享约定。`cors_enabled` 对应 `http-api-spec.md` §3.7 的 CORS 开关。
 3. 使用 `@lru_cache(maxsize=1)` 的 `get_settings()` 单例获取器。
 4. 可用 `@property` 提供派生值(如 `voices_path: Path`, `resolved_device: str`, `torch_dtype`)。
 5. `torch` 相关的 import 写在 property 内部,避免模块加载期间导入 torch。
@@ -295,6 +295,9 @@ class Settings(BaseSettings):
     max_concurrency: int = Field(default=1, ge=1)
     max_queue_size: int = Field(default=0, ge=0)      # 0 = 不限
     queue_timeout: float = Field(default=0.0, ge=0.0)  # 0 = 不限
+
+    # CORS 开关(见 http-api-spec §3.7)
+    cors_enabled: bool = Field(default=False)
 
     @property
     def voices_path(self) -> Path:
@@ -786,6 +789,7 @@ One-paragraph description
 - [ ] 所有推理类端点(`/v1/audio/speech`、`/clone`、`/design`、`/realtime`)通过 `ConcurrencyLimiter` 持有并发令牌;`/healthz`、`/v1/audio/voices*`、`/v1/audio/languages` **不**持有(见 http-api-spec §3.6)
 - [ ] 参数校验在获取令牌**之前**完成,避免错误请求占队
 - [ ] 流式端点在 `StreamingResponse` 的生成器内持有令牌,流结束或连接断开时释放
+- [ ] 通过 `CORS_ENABLED` 环境变量控制跨域;`true` 时对所有端点放开(`origin=*`, `methods=*`, `headers=*`);`false` 时不挂载中间件(见 http-api-spec §3.7)
 
 **可选扩展(按 capabilities)**:
 
